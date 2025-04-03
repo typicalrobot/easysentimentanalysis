@@ -29,7 +29,9 @@ TextBlob (simple rule-based approach).
 Hugging Face Transformers (optional, more advanced approach).
 
 <br>
+
 ## Requirements <br>
+
 Python 3.7+
 
 pandas
