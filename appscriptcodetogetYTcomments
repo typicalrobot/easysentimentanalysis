@@ -1,0 +1,173 @@
+function getYouTubeCommentsFromPlaylist(playlistId) {
+  var apiKey = 'API KEY';
+  var playlistUrl =
+    'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=' +
+    encodeURIComponent(playlistId) +
+    '&maxResults=50&key=' + apiKey;
+
+  var videoIds = [];
+  var nextPageToken = '';
+
+  //Logger.log('Playlist ID: ' + playlistId);
+
+  try {
+    // 1) Fetch all video IDs from the playlist
+    do {
+      var response = UrlFetchApp.fetch(playlistUrl + (nextPageToken ? '&pageToken=' + nextPageToken : ''), {
+        muteHttpExceptions: true
+      });
+
+    //if (response.getResponseCode() !== 200) {
+      //Logger.log('Error: Non-200 response code: ' + response.getResponseCode());
+     // Logger.log(response.getContentText());
+      //return;
+    // }
+
+      var json = JSON.parse(response.getContentText());
+      if (json.error) {
+        Logger.log('Error fetching playlist: ' + json.error.message);
+        return;
+      }
+
+      for (var i = 0; i < json.items.length; i++) {
+        var videoId = json.items[i].snippet.resourceId.videoId;
+        videoIds.push(videoId);
+      }
+      nextPageToken = json.nextPageToken;
+    } while (nextPageToken);
+
+    if (videoIds.length === 0) {
+      Logger.log('No videos found in the playlist.');
+      return;
+    }
+
+    // 2) Fetch and collect comments from each video ID in one array
+    var allCommentsData = [];
+    // Add a header row
+    allCommentsData.push([
+      "Video ID", "Type", "Author Name", "Author URL", "Comment Text", "Likes", "Published At"
+    ]);
+
+    // Process each video ID in small batches to avoid quickly hitting API limits
+    var batchSize = 5;
+    for (var start = 0; start < videoIds.length; start += batchSize) {
+      var batch = videoIds.slice(start, start + batchSize);
+      batch.forEach(function(videoId) {
+        var comments = fetchComments(videoId, apiKey);
+        if (comments && comments.length > 0) {
+          allCommentsData = allCommentsData.concat(comments);
+        }
+      });
+    }
+
+    // 3) Write all comments to a sheet named "All comments"
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var oldSheet = ss.getSheetByName("Sheet1"); 
+    var targetName = "All comments";  // The new sheet name you want
+
+    // If "Sheet1" exists, rename it. Otherwise, just get (or create) "All comments"
+    var sheet;
+    if (oldSheet) {
+      // Rename "Sheet1" -> "All comments"
+      oldSheet.setName(targetName);
+      sheet = ss.getSheetByName(targetName);
+    } else {
+      // If you already have a sheet named "All comments", use it. Otherwise, create it.
+      sheet = ss.getSheetByName(targetName);
+      if (!sheet) {
+        sheet = ss.insertSheet(targetName);
+      }
+    }
+    
+    // Clear existing data
+    sheet.clearContents();
+
+    // Write data
+    sheet.getRange(1, 1, allCommentsData.length, 7).setValues(allCommentsData);
+
+    // 4) Optional: Freeze the header row, bold it, and apply a filter
+    // Freeze the first row
+    sheet.setFrozenRows(1);
+
+    // Bold the header row
+    var headerRange = sheet.getRange(1, 1, 1, 7);
+    headerRange.setFontWeight("bold");
+
+    // Add a filter to the data range
+    var dataRange = sheet.getDataRange();
+    dataRange.createFilter();
+
+  } catch (e) {
+    Logger.log('Error: ' + e.message);
+  }
+}
+
+/**
+ * Fetches comments for a single video and returns them as a 2D array (without headers).
+ */
+function fetchComments(videoId, apiKey) {
+  var url = 'https://www.googleapis.com/youtube/v3/commentThreads?part=snippet,replies&videoId=' +
+            videoId + '&maxResults=100&key=' + apiKey;
+  var nextPageToken = '';
+  var commentsData = [];
+
+  try {
+    do {
+      var response = UrlFetchApp.fetch(url + (nextPageToken ? '&pageToken=' + nextPageToken : ''), {
+        muteHttpExceptions: true
+      });
+
+      //if (response.getResponseCode() !== 200) {
+        //Logger.log('Error: Non-200 response code: ' + response.getResponseCode());
+        //Logger.log(response.getContentText());
+        //return [];
+      //}
+
+      var json = JSON.parse(response.getContentText());
+      //if (json.error) {
+       // Logger.log('Error fetching comments: ' + json.error.message);
+       // return [];
+      //}
+
+      // Gather the top-level comments
+      for (var i = 0; i < json.items.length; i++) {
+        var topComment = json.items[i].snippet.topLevelComment.snippet;
+        commentsData.push([
+          videoId,
+          "Comment",
+          topComment.authorDisplayName,
+          topComment.authorChannelUrl,
+          topComment.textDisplay,
+          topComment.likeCount,
+          topComment.publishedAt
+        ]);
+
+        // If there are replies, gather them as well
+        if (json.items[i].replies) {
+          var replies = json.items[i].replies.comments;
+          for (var j = 0; j < replies.length; j++) {
+            var reply = replies[j].snippet;
+            commentsData.push([
+              videoId,
+              "Reply",
+              reply.authorDisplayName,
+              reply.authorChannelUrl,
+              reply.textDisplay,
+              reply.likeCount,
+              reply.publishedAt
+            ]);
+          }
+        }
+      }
+
+      nextPageToken = json.nextPageToken;
+    } while (nextPageToken);
+
+    return commentsData;
+
+  } catch (e) {
+    Logger.log('Error: ' + e.message);
+    return [];
+  }
+}
+getYouTubeCommentsFromPlaylist("PLAYLIST ID");
