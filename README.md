@@ -15,8 +15,6 @@ Running in Google Colab
 
 Contributing
 
-License
-
 <br>
 
 ## Features <br>
