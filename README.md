@@ -7,8 +7,6 @@ Features
 
 Requirements
 
-Setup
-
 Usage
 
 Running in Google Colab
@@ -45,36 +43,8 @@ transformers and torch (optional, if using advanced models)
 <br>
 You can install everything via a requirements.txt (if provided) or manually with pip:
 
-nginx
-Copy
-Edit
 pip install pandas textblob matplotlib transformers torch
 <br>
-## Setup <br>
-Clone the repo (or download as ZIP):
-
-bash
-Copy
-Edit
-git clone https://github.com/typicalrobot/easysentimentanalysis.git
-cd easysentimentanalysis
-<br>
-(Optional) Create a virtual environment:
-
-bash
-Copy
-Edit
-python -m venv venv
-source venv/bin/activate  # On Mac/Linux
-venv\Scripts\activate     # On Windows
-<br>
-Install dependencies:
-
-nginx
-Copy
-Edit
-pip install -r requirements.txt
-or, if no requirements.txt is provided, install the libraries mentioned under Requirements. <br><br>
 
 ## Usage <br>
 The core workflow is generally:
@@ -89,9 +59,6 @@ Review or visualize the results.
 
 Below is a minimal sample script (assuming your file is named data.csv and contains a column called Comment Text):
 
-python
-Copy
-Edit
 import pandas as pd
 import re
 from textblob import TextBlob
@@ -134,16 +101,9 @@ Upload your dataset (e.g., data.csv) to Colab’s file system.
 Copy and paste the example code (or your own script) into a Colab cell.
 
 Install needed libraries within Colab:
-
-python
-Copy
-Edit
 !pip install pandas textblob matplotlib torch transformers
-Run the cells to produce sentiment results. You can add a bar chart, for example:
 
-python
-Copy
-Edit
+Run the cells to produce sentiment results. You can add a bar chart, for example:
 import matplotlib.pyplot as plt
 
 df['Sentiment'].value_counts().plot(kind='bar')
